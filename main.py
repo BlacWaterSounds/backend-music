@@ -39,44 +39,117 @@ def generate_prompt(data: dict, authorization: str = Header(None)):
     return {"prompt": prompt, "meta": {}}
 
 
-# --- SAVE PROMPT ---
+# --- LIST ALL PROMPTS ---
+@app.get("/prompts")
+def list_prompts(authorization: str = Header(None)):
+    verify_key(authorization)
+
+    db = SessionLocal()
+    try:
+        rows = db.query(Prompt).order_by(Prompt.created_at.desc()).all()
+        return {
+            "prompts": [
+                {
+                    "id": r.id,
+                    "user_id": r.user_id,
+                    "prompt": r.prompt,
+                    "created_at": r.created_at.isoformat()
+                }
+                for r in rows
+            ]
+        }
+    finally:
+        db.close()
+
+
+# --- CREATE PROMPT ---
+@app.post("/prompts")
+def create_prompt(data: dict, authorization: str = Header(None)):
+    verify_key(authorization)
+
+    db = SessionLocal()
+    try:
+        new_id = str(uuid.uuid4())
+        new_prompt = Prompt(
+            id=new_id,
+            user_id=data["user_id"],
+            prompt=data["prompt"]
+        )
+        db.add(new_prompt)
+        db.commit()
+        db.refresh(new_prompt)
+        return {
+            "id": new_prompt.id,
+            "user_id": new_prompt.user_id,
+            "prompt": new_prompt.prompt,
+            "created_at": new_prompt.created_at.isoformat()
+        }
+    finally:
+        db.close()
+
+
+# --- GET PROMPT BY ID ---
+@app.get("/prompts/{prompt_id}")
+def get_prompt(prompt_id: str, authorization: str = Header(None)):
+    verify_key(authorization)
+
+    db = SessionLocal()
+    try:
+        row = db.query(Prompt).filter(Prompt.id == prompt_id).first()
+        if not row:
+            raise HTTPException(status_code=404, detail="Prompt not found")
+        return {
+            "id": row.id,
+            "user_id": row.user_id,
+            "prompt": row.prompt,
+            "created_at": row.created_at.isoformat()
+        }
+    finally:
+        db.close()
+
+
+# --- SAVE PROMPT (deprecated — use POST /prompts) ---
 @app.post("/save-prompt")
 def save_prompt(data: dict, authorization: str = Header(None)):
     verify_key(authorization)
 
     db = SessionLocal()
+    try:
+        new_id = str(uuid.uuid4())
+        new_prompt = Prompt(
+            id=new_id,
+            user_id=data["user_id"],
+            prompt=data["prompt"]
+        )
+        db.add(new_prompt)
+        db.commit()
+        return {"id": new_id}
+    finally:
+        db.close()
 
-    new_id = str(uuid.uuid4())
-    new_prompt = Prompt(
-        id=new_id,
-        user_id=data["user_id"],
-        prompt=data["prompt"]
-    )
 
-    db.add(new_prompt)
-    db.commit()
-
-    return {"id": new_id}
-
-
-# --- LIST PROMPTS ---
-@app.get("/prompts/{user_id}")
-def get_prompts(user_id: str, authorization: str = Header(None)):
+# --- LIST PROMPTS BY USER (deprecated — use GET /prompts) ---
+@app.get("/prompts/user/{user_id}")
+def get_prompts_by_user(user_id: str, authorization: str = Header(None)):
     verify_key(authorization)
 
     db = SessionLocal()
-    rows = db.query(Prompt).filter(Prompt.user_id == user_id).all()
+    try:
+        rows = db.query(Prompt).filter(Prompt.user_id == user_id).all()
+        return {
+            "prompts": [
+                {
+                    "id": r.id,
+                    "user_id": r.user_id,
+                    "prompt": r.prompt,
+                    "created_at": r.created_at.isoformat()
+                }
+                for r in rows
+            ]
+        }
+    finally:
+        db.close()
 
-    return {
-        "prompts": [
-            {
-                "id": r.id,
-                "prompt": r.prompt,
-                "created_at": r.created_at.isoformat()
-            }
-            for r in rows
-        ]
-    }
 
 
 # --- SUNO GENERATE ---
