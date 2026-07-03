@@ -81,7 +81,9 @@ def get_prompts(user_id: str, authorization: str = Header(None)):
 
 # --- SUNO GENERATE ---
 @app.post("/suno/generate")
+@app.post("/api/suno/generate")
 def suno_generate(data: dict, authorization: str = Header(None)):
+
     verify_key(authorization)
 
     # Placeholder — Lovable will wire this to Suno API later
@@ -90,7 +92,9 @@ def suno_generate(data: dict, authorization: str = Header(None)):
 
 # --- UDIO GENERATE ---
 @app.post("/udio/generate")
+@app.post("/api/udio/generate")
 def udio_generate(data: dict, authorization: str = Header(None)):
+
     verify_key(authorization)
 
     # Placeholder — Lovable will wire this to Udio API later
