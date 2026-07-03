@@ -59,23 +59,66 @@ def save_prompt(data: dict, authorization: str = Header(None)):
     return {"id": new_id}
 
 
-# --- LIST PROMPTS ---
-@app.get("/prompts/{user_id}")
-def get_prompts(user_id: str, authorization: str = Header(None)):
+# --- LIST ALL PROMPTS ---
+@app.get("/prompts")
+@app.get("/api/prompts")
+def list_prompts(authorization: str = Header(None)):
     verify_key(authorization)
 
     db = SessionLocal()
-    rows = db.query(Prompt).filter(Prompt.user_id == user_id).all()
+    rows = db.query(Prompt).all()
 
     return {
         "prompts": [
             {
                 "id": r.id,
+                "user_id": r.user_id,
                 "prompt": r.prompt,
                 "created_at": r.created_at.isoformat()
             }
             for r in rows
         ]
+    }
+
+
+# --- CREATE PROMPT ---
+@app.post("/prompts")
+@app.post("/api/prompts")
+def create_prompt(data: dict, authorization: str = Header(None)):
+    verify_key(authorization)
+
+    db = SessionLocal()
+
+    new_id = str(uuid.uuid4())
+    new_prompt = Prompt(
+        id=new_id,
+        user_id=data["user_id"],
+        prompt=data["prompt"]
+    )
+
+    db.add(new_prompt)
+    db.commit()
+
+    return {"id": new_id}
+
+
+# --- GET PROMPT BY ID ---
+@app.get("/prompts/{prompt_id}")
+@app.get("/api/prompts/{prompt_id}")
+def get_prompt(prompt_id: str, authorization: str = Header(None)):
+    verify_key(authorization)
+
+    db = SessionLocal()
+    row = db.query(Prompt).filter(Prompt.id == prompt_id).first()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Prompt not found")
+
+    return {
+        "id": row.id,
+        "user_id": row.user_id,
+        "prompt": row.prompt,
+        "created_at": row.created_at.isoformat()
     }
 
 
@@ -95,5 +138,3 @@ def udio_generate(data: dict, authorization: str = Header(None)):
 
     # Placeholder — Lovable will wire this to Udio API later
     return {"job_id": str(uuid.uuid4()), "status": "queued"}
-
-
