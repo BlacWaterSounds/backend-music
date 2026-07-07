@@ -137,4 +137,3 @@ def suno_generate(data: dict, authorization: str = Depends(verify_key)):
 def udio_generate(data: dict, authorization: str = Depends(verify_key)):
     return {"job_id": str(uuid.uuid4()), "status": "queued"}
 
-
